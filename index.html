@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>청소 역할 뽑기</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+            color: #2d3436; min-height: 100vh; user-select: none;
+            background: linear-gradient(135deg, #e8f4ff 0%, #f0ffe8 35%, #fffbe8 65%, #f5f0ff 100%);
+            background-size: 200% 200%; animation: bgMove 14s ease-in-out infinite alternate;
+        }
+        @keyframes bgMove { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
+
+        .bg-aurora {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(ellipse at 15% 35%, rgba(69,170,242,0.22) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 15%, rgba(38,222,129,0.2) 0%, transparent 45%),
+                radial-gradient(ellipse at 55% 80%, rgba(255,211,42,0.18) 0%, transparent 45%),
+                radial-gradient(ellipse at 30% 65%, rgba(165,94,234,0.15) 0%, transparent 40%);
+            animation: aurora 10s ease-in-out infinite alternate;
+        }
+        @keyframes aurora {
+            0% { filter: hue-rotate(0deg) brightness(1); }
+            50% { filter: hue-rotate(20deg) brightness(1.1); }
+            100% { filter: hue-rotate(-15deg) brightness(1.05); }
+        }
+        .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .particle { position: absolute; opacity: 0; animation: floatUp linear infinite; }
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.55; } 90% { opacity: 0.3; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* ── 공통 버튼 ── */
+        .btn-primary {
+            background: linear-gradient(135deg, #45aaf2, #26de81);
+            border: none; color: white; font-size: 1.7em; font-weight: 900; font-family: inherit;
+            padding: 18px 70px; border-radius: 50px; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 6px 25px rgba(69,170,242,0.4);
+            letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .btn-primary:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 10px 35px rgba(69,170,242,0.55); }
+        .btn-primary:active { transform: translateY(0) scale(0.98); }
+        .btn-ctrl {
+            padding: 10px 18px; border-radius: 30px; border: 2px solid rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.6); color: #2d3436;
+            font-size: 0.88em; font-family: inherit; cursor: pointer; transition: all 0.2s;
+            backdrop-filter: blur(4px); font-weight: 700;
+        }
+        .btn-ctrl:hover { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.2); box-shadow: 0 3px 12px rgba(0,0,0,0.1); }
+        .btn-fullscreen {
+            position: absolute; top: 24px; right: 28px;
+            background: rgba(255,255,255,0.6); border: 2px solid rgba(0,0,0,0.08);
+            font-size: 1.6em; width: 52px; height: 52px; border-radius: 50%;
+            cursor: pointer; transition: all 0.2s; line-height: 1; z-index: 10;
+        }
+        .btn-fullscreen:hover { background: rgba(255,255,255,0.95); box-shadow: 0 3px 12px rgba(0,0,0,0.1); transform: scale(1.08); }
+
+        /* ─── 커버 화면 ─── */
+        #cover-screen {
+            position: relative; z-index: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 100vh; text-align: center; padding: 40px; gap: 0;
+        }
+        .cover-icon { font-size: 7em; margin-bottom: 20px; animation: floatIcon 3s ease-in-out infinite; }
+        @keyframes floatIcon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+        .cover-title { font-size: 3.6em; font-weight: 900; margin-bottom: 12px; }
+        .cover-title .hl {
+            background: linear-gradient(135deg, #45aaf2, #26de81);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .cover-sub { font-size: 1.15em; color: rgba(0,0,0,0.38); margin-bottom: 36px; }
+        .class-input-wrap { margin-bottom: 44px; }
+        .class-input-wrap label { font-size: 1em; font-weight: 700; color: rgba(0,0,0,0.45); display: block; margin-bottom: 10px; letter-spacing: 2px; }
+        .class-input-wrap input {
+            font-size: 1.5em; font-weight: 900; font-family: inherit; text-align: center;
+            padding: 14px 30px; border-radius: 50px; border: 3px solid rgba(69,170,242,0.35);
+            background: rgba(255,255,255,0.8); outline: none; width: 280px; color: #2d3436;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .class-input-wrap input:focus { border-color: #45aaf2; box-shadow: 0 0 0 4px rgba(69,170,242,0.15); }
+        .class-input-wrap input::placeholder { color: rgba(0,0,0,0.2); font-weight: 400; }
+        .btn-cover {
+            background: linear-gradient(135deg, #45aaf2, #26de81); border: none; color: white;
+            font-size: 2em; font-weight: 900; font-family: inherit;
+            padding: 22px 90px; border-radius: 50px; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 6px 28px rgba(69,170,242,0.45); letter-spacing: 3px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.12); animation: coverPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes coverPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 6px 28px rgba(69,170,242,0.45); }
+            50% { transform: scale(1.04); box-shadow: 0 10px 40px rgba(69,170,242,0.65); }
+        }
+        .btn-cover:hover { transform: scale(1.07) !important; }
+        .btn-cover:active { transform: scale(0.97) !important; }
+
+        /* ─── 역할 설정 화면 ─── */
+        #settings-screen {
+            position: fixed; inset: 0; z-index: 1; display: none; flex-direction: column;
+            align-items: center; padding: 36px 40px 60px; overflow-y: auto;
+        }
+        .settings-header { text-align: center; margin-bottom: 28px; }
+        .settings-header h2 { font-size: 2.2em; font-weight: 900; }
+        .settings-header h2 .hl {
+            background: linear-gradient(135deg, #45aaf2, #26de81);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .settings-header p { color: rgba(0,0,0,0.4); font-size: 1em; margin-top: 6px; }
+        .student-count {
+            background: rgba(69,170,242,0.1); border: 2px solid #45aaf2;
+            color: #2980b9; font-weight: 900; font-size: 1em;
+            padding: 6px 22px; border-radius: 20px; margin-top: 10px; display: inline-block;
+        }
+        .role-list { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .role-item {
+            background: white; border-radius: 18px; padding: 16px 20px;
+            display: flex; align-items: center; gap: 16px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.07); border: 2px solid;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .role-item:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .role-color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+        .role-icon-display { font-size: 2em; flex-shrink: 0; width: 44px; text-align: center; }
+        .role-info { flex: 1; min-width: 0; }
+        .role-info-name { font-size: 1.1em; font-weight: 900; }
+        .role-info-desc { font-size: 0.82em; color: rgba(0,0,0,0.4); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .role-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn-edit, .btn-delete {
+            padding: 7px 16px; border-radius: 20px; border: none; cursor: pointer;
+            font-size: 0.85em; font-weight: 700; font-family: inherit; transition: all 0.2s;
+        }
+        .btn-edit { background: rgba(69,170,242,0.1); color: #2980b9; }
+        .btn-edit:hover { background: rgba(69,170,242,0.25); }
+        .btn-delete { background: rgba(231,76,60,0.1); color: #e74c3c; }
+        .btn-delete:hover { background: rgba(231,76,60,0.25); }
+        .btn-add-role {
+            width: 100%; max-width: 760px; padding: 16px; border-radius: 18px;
+            border: 2.5px dashed rgba(69,170,242,0.4); background: rgba(69,170,242,0.05);
+            color: #45aaf2; font-size: 1.05em; font-weight: 900; font-family: inherit;
+            cursor: pointer; transition: all 0.2s; letter-spacing: 1px; margin-bottom: 28px;
+        }
+        .btn-add-role:hover { background: rgba(69,170,242,0.12); border-color: #45aaf2; }
+        .settings-footer { display: flex; gap: 16px; }
+
+        /* ─── 수정/추가 모달 ─── */
+        #edit-modal {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.45); backdrop-filter: blur(6px);
+            align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: white; border-radius: 28px; padding: 36px 40px;
+            width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes modalIn { from { transform: scale(0.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-title { font-size: 1.6em; font-weight: 900; margin-bottom: 24px; color: #2d3436; }
+        .modal-field { margin-bottom: 18px; }
+        .modal-field label { display: block; font-size: 0.85em; font-weight: 700; color: rgba(0,0,0,0.45); letter-spacing: 2px; margin-bottom: 7px; }
+        .modal-field input, .modal-field textarea {
+            width: 100%; padding: 11px 16px; border-radius: 14px;
+            border: 2px solid rgba(0,0,0,0.1); font-size: 1em; font-family: inherit;
+            background: #fafafa; outline: none; color: #2d3436; transition: border-color 0.2s;
+            resize: none;
+        }
+        .modal-field input:focus, .modal-field textarea:focus { border-color: #45aaf2; background: white; }
+        .modal-field input.emoji-input { font-size: 1.8em; text-align: center; width: 90px; }
+        .emoji-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .emoji-btn {
+            font-size: 1.6em; width: 42px; height: 42px; border-radius: 10px;
+            border: 2px solid transparent; background: #f5f5f5;
+            cursor: pointer; transition: all 0.15s; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .emoji-btn:hover { background: #e8f4ff; border-color: #45aaf2; transform: scale(1.15); }
+        .emoji-btn.selected { background: #e8f4ff; border-color: #45aaf2; transform: scale(1.1); }
+        .color-swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+        .color-swatch {
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s; border: 3px solid transparent;
+        }
+        .color-swatch:hover { transform: scale(1.15); }
+        .color-swatch.selected { border-color: #2d3436; box-shadow: 0 0 0 3px white inset; transform: scale(1.15); }
+        .modal-actions { display: flex; gap: 12px; margin-top: 28px; }
+        .btn-modal-save {
+            flex: 1; padding: 14px; border-radius: 14px; border: none;
+            background: linear-gradient(135deg, #45aaf2, #26de81); color: white;
+            font-size: 1.05em; font-weight: 900; font-family: inherit; cursor: pointer;
+            transition: transform 0.15s; text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .btn-modal-save:hover { transform: scale(1.03); }
+        .btn-modal-cancel {
+            padding: 14px 24px; border-radius: 14px; border: 2px solid rgba(0,0,0,0.1);
+            background: white; color: #636e72; font-size: 1em; font-weight: 700;
+            font-family: inherit; cursor: pointer; transition: all 0.15s;
+        }
+        .btn-modal-cancel:hover { background: #f5f5f5; }
+
+        /* ─── 뽑기 화면 ─── */
+        #draw-screen {
+            position: fixed; inset: 0; z-index: 1; display: none; flex-direction: column;
+            align-items: center; justify-content: center; overflow-y: auto; padding: 40px;
+        }
+        .main-title { font-size: 3.4em; font-weight: 900; text-align: center; margin-bottom: 6px; color: #2d3436; }
+        .main-title .hl {
+            background: linear-gradient(135deg, #45aaf2, #26de81);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .main-subtitle { color: rgba(0,0,0,0.45); font-size: 1.1em; margin-bottom: 28px; }
+        .draw-grid { display: grid; gap: 20px; width: 100%; max-width: 1400px; margin-top: 30px; margin-bottom: 32px; }
+        .flip-card { height: 280px; cursor: pointer; perspective: 1200px; }
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+            transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card.flipped { cursor: default; }
+        .flip-front, .flip-back {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .flip-front {
+            background: white; border: 3px dashed rgba(0,0,0,0.13);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.2s;
+        }
+        .flip-card:not(.flipped):hover .flip-front {
+            border-color: rgba(69,170,242,0.5); box-shadow: 0 8px 30px rgba(69,170,242,0.2); transform: translateY(-4px);
+        }
+        .mystery-emoji { font-size: 4.2em; animation: mysteryBounce 1.8s ease-in-out infinite; filter: drop-shadow(0 4px 8px rgba(69,170,242,0.35)); }
+        @keyframes mysteryBounce {
+            0%, 100% { transform: translateY(0) scale(1) rotate(-3deg); }
+            50% { transform: translateY(-12px) scale(1.12) rotate(3deg); }
+        }
+        .flip-card:not(.flipped):hover .mystery-emoji { animation-duration: 0.5s; }
+        .flip-front .tap-text { font-size: 0.92em; color: rgba(0,0,0,0.35); margin-top: 12px; font-weight: 700; letter-spacing: 2px; }
+        .flip-back { transform: rotateY(180deg); border: 3px solid; padding: 22px 16px; text-align: center; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .flip-back .role-icon { font-size: 3.6em; margin-bottom: 12px; }
+        .flip-back .role-title { font-size: 1.4em; font-weight: 900; margin-bottom: 10px; }
+        .num-badge { position: absolute; top: 12px; left: 14px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.95em; font-weight: 900; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        #start-wrap { opacity: 0; transform: translateY(14px); transition: opacity 0.5s, transform 0.5s; pointer-events: none; }
+        #start-wrap.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+        /* ─── 청소 중 화면 ─── */
+        #cleaning-screen {
+            position: fixed; inset: 0; z-index: 1; display: none; flex-direction: column;
+            align-items: center; justify-content: center; overflow-y: auto; padding: 40px;
+        }
+        .cleaning-title { font-size: 3.4em; font-weight: 900; text-align: center; margin-bottom: 6px; }
+        .cleaning-title .hl {
+            background: linear-gradient(135deg, #45aaf2, #26de81);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .cleaning-sub { color: rgba(0,0,0,0.45); font-size: 1.1em; margin-bottom: 28px; }
+        .role-cards-grid { display: grid; gap: 20px; width: 100%; max-width: 1400px; margin-top: 30px; margin-bottom: 32px; }
+        .role-card-display {
+            height: 280px; background: white; border: 3px solid; border-radius: 24px; padding: 22px 16px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.08); cursor: pointer; position: relative;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.4s;
+        }
+        .role-card-display:hover:not(.card-done) { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.13); }
+        .role-card-display.card-done { opacity: 0.55; cursor: default; }
+        .role-card-num {
+            position: absolute; top: 12px; left: 14px;
+            width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 0.95em; font-weight: 900; color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .role-card-check { position: absolute; top: 12px; right: 14px; font-size: 1.4em; opacity: 0; transition: opacity 0.3s; }
+        .role-card-display.card-done .role-card-check { opacity: 1; }
+        .role-card-icon { font-size: 3em; margin-bottom: 10px; }
+        .role-card-name { font-size: 1.2em; font-weight: 900; margin-bottom: 6px; }
+        .role-card-desc { font-size: 0.85em; color: rgba(0,0,0,0.45); line-height: 1.6; }
+        .role-card-hint { font-size: 0.75em; color: rgba(0,0,0,0.22); margin-top: 8px; }
+
+        .btn-finish-big {
+            background: linear-gradient(135deg, #26de81, #45aaf2);
+            border: none; color: white; font-size: 1.7em; font-weight: 900; font-family: inherit;
+            padding: 18px 70px; border-radius: 50px; cursor: pointer;
+            letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 6px 25px rgba(38,222,129,0.4);
+            animation: finishBigPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes finishBigPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 6px 25px rgba(38,222,129,0.4); }
+            50% { transform: scale(1.04); box-shadow: 0 10px 40px rgba(38,222,129,0.65); }
+        }
+        .btn-finish-big:active { transform: scale(0.97) !important; }
+
+        /* ─── 완료 화면 ─── */
+        #done-screen {
+            position: relative; z-index: 1; display: none; flex-direction: column;
+            align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 40px;
+        }
+        .done-emoji { font-size: 7em; animation: bounce 0.7s ease-in-out infinite; margin-bottom: 20px; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-28px); } }
+        .done-title { font-size: 4.5em; font-weight: 900; margin-bottom: 14px; background: linear-gradient(135deg, #45aaf2, #26de81); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: titleRainbow 2s linear infinite; }
+        @keyframes titleRainbow { to { filter: hue-rotate(360deg); } }
+        .done-sub { font-size: 1.5em; color: rgba(0,0,0,0.45); margin-bottom: 45px; }
+        .rainbow-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(45deg, #e8f4ff, #f0ffe8, #fffbe8, #f5f0ff, #e8f4ff); background-size: 400% 400%; animation: rainbowPulse 1.5s ease-in-out infinite, rainbowHue 3s linear infinite; opacity: 0.85; }
+        @keyframes rainbowPulse { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        @keyframes rainbowHue { to { filter: hue-rotate(360deg); } }
+        .confetti { position: fixed; top: -10px; font-size: 2em; animation: fall linear forwards; pointer-events: none; z-index: 999; }
+        @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="bg-aurora"></div>
+<div class="particles" id="particles"></div>
+
+<!-- ── 커버 화면 ── -->
+<div id="cover-screen">
+    <div class="cover-icon">🧹</div>
+    <div class="cover-title"><span class="hl">청소 역할 뽑기</span></div>
+    <div class="cover-sub">역할을 뽑고 깨끗하게 청소해요! ✨</div>
+    <div class="class-input-wrap">
+        <label>우리 반 이름을 입력하세요</label>
+        <input type="text" id="class-name-input" placeholder="예) 3학년 4반" maxlength="12">
+    </div>
+    <button class="btn-cover" onclick="enterApp()">✨ 시작하기!</button>
+</div>
+
+<!-- ── 역할 설정 화면 ── -->
+<div id="settings-screen">
+    <div class="settings-header">
+        <h2>🎯 <span class="hl">역할 설정</span></h2>
+        <p>역할을 추가하거나 수정해서 우리 반에 맞게 바꿔보세요</p>
+        <div class="student-count" id="student-count">총 5명</div>
+    </div>
+    <div class="role-list" id="role-list"></div>
+    <button class="btn-add-role" onclick="openModal(-1)">+ 역할 추가하기</button>
+    <div class="settings-footer">
+        <button class="btn-ctrl" onclick="show('cover-screen')">← 뒤로</button>
+        <button class="btn-ctrl" id="reset-btn" onclick="confirmReset()">🔄 기본값으로</button>
+        <button class="btn-primary" style="font-size:1.2em;padding:14px 50px;" onclick="goToDraw()">역할 뽑기! →</button>
+    </div>
+</div>
+
+<!-- ── 뽑기 화면 ── -->
+<div id="draw-screen">
+    <button class="btn-fullscreen" id="fs-btn" onclick="toggleFullscreen()" title="전체화면">⛶</button>
+    <div class="main-title">🧼 <span class="hl" id="draw-title">청소 역할 뽑기</span></div>
+    <div class="main-subtitle">카드를 탭해서 내 역할을 확인하세요 ✨</div>
+    <div class="draw-grid" id="draw-grid"></div>
+    <div id="start-wrap">
+        <button class="btn-primary" onclick="startCleaning()">🧹 청소 합시다!</button>
+    </div>
+</div>
+
+<!-- ── 청소 중 화면 ── -->
+<div id="cleaning-screen">
+    <button class="btn-fullscreen" id="fs-btn2" onclick="toggleFullscreen()" title="전체화면">⛶</button>
+    <div class="cleaning-title">🧼 <span class="hl" id="cleaning-title-text">청소 합시다!</span></div>
+    <div class="cleaning-sub">역할이 끝난 사람은 자기 카드를 탭하세요 ✅&nbsp;&nbsp;|&nbsp;&nbsp;다 끝나면 자동 완료!</div>
+    <div class="role-cards-grid" id="role-cards-grid"></div>
+    <button class="btn-finish-big" onclick="finishCleaning()">🎊 청소 끝!</button>
+</div>
+
+<!-- ── 완료 화면 ── -->
+<div id="done-screen">
+    <div class="done-emoji">🎉</div>
+    <div class="done-title">청소 완료!</div>
+    <div class="done-sub" id="done-sub">여러분 덕분에 교실이 깨끗해졌어요! 수고했어요 ✨</div>
+    <button class="btn-primary" style="font-size:1.3em;padding:16px 55px;" onclick="backToSettings()">🔄 다시 시작</button>
+</div>
+
+<!-- ── 수정/추가 모달 ── -->
+<div id="edit-modal" onclick="modalOutsideClick(event)">
+    <div class="modal-box">
+        <div class="modal-title" id="modal-title">역할 추가</div>
+        <div class="modal-field">
+            <label>이모지</label>
+            <div style="display:flex;gap:16px;align-items:center;">
+                <input class="emoji-input" type="text" id="f-icon" maxlength="2" placeholder="🧹" oninput="syncEmojiSelect()">
+                <div class="modal-field" style="flex:1;margin:0">
+                    <input type="text" id="f-title" placeholder="예) 앞쪽 쓸기" maxlength="14">
+                    <div style="font-size:0.78em;color:rgba(0,0,0,0.3);margin-top:4px;letter-spacing:1px;">역할 이름</div>
+                </div>
+            </div>
+            <div class="emoji-picker" id="emoji-picker-1"></div>
+        </div>
+        <div class="modal-field">
+            <label>설명</label>
+            <textarea id="f-desc" rows="2" placeholder="예) 교실 앞쪽 바닥을 쓸어주세요"></textarea>
+        </div>
+        <div class="modal-field">
+            <label>카드 색상</label>
+            <div class="color-swatches" id="color-swatches"></div>
+        </div>
+        <div id="modal-error" style="display:none;color:#e74c3c;font-size:0.88em;font-weight:700;margin-bottom:10px;">역할 이름을 입력해 주세요!</div>
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeModal()">취소</button>
+            <button class="btn-modal-save" onclick="saveRole()">저장하기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const COLORS = [
+        { color: '#45aaf2', bg: 'rgba(69,170,242,0.1)' },
+        { color: '#26de81', bg: 'rgba(38,222,129,0.1)' },
+        { color: '#f9a825', bg: 'rgba(249,168,37,0.1)' },
+        { color: '#ff6b9d', bg: 'rgba(255,107,157,0.1)' },
+        { color: '#a55eea', bg: 'rgba(165,94,234,0.1)' },
+        { color: '#ff6b6b', bg: 'rgba(255,107,107,0.1)' },
+        { color: '#fd9644', bg: 'rgba(253,150,68,0.1)' },
+        { color: '#1dd1a1', bg: 'rgba(29,209,161,0.1)' },
+    ];
+
+    const DEFAULT_ROLES = [
+        { color: '#45aaf2', colorBg: 'rgba(69,170,242,0.1)', icon: '🧹', title: '앞·뒤 쓸기', desc: '교실 앞쪽과 뒤쪽\n바닥을 쓸어주세요' },
+        { color: '#45aaf2', colorBg: 'rgba(69,170,242,0.1)', icon: '🧹', title: '책상쪽 쓸기', desc: '책상 사이사이\n바닥을 쓸어주세요' },
+        { color: '#f9a825', colorBg: 'rgba(249,168,37,0.1)', icon: '🪣', title: '대걸레', desc: '쓸기가 끝난 구역부터\n바닥을 닦아주세요' },
+        { color: '#f9a825', colorBg: 'rgba(249,168,37,0.1)', icon: '🪣', title: '대걸레', desc: '짝꿍이랑 앞뒤 나눠서\n바닥을 닦아주세요' },
+        { color: '#26de81', colorBg: 'rgba(38,222,129,0.1)', icon: '🪟', title: '환기 & 책상 정리', desc: '창문 열고 블라인드 올리고\n책상 줄 맞춰주세요' },
+    ];
+
+    function loadRoles() {
+        try {
+            const saved = localStorage.getItem('cleaningRoles_v2');
+            if (!saved) return [...DEFAULT_ROLES];
+            return JSON.parse(saved);
+        } catch(e) { return [...DEFAULT_ROLES]; }
+    }
+    function saveRoles() {
+        localStorage.setItem('cleaningRoles_v2', JSON.stringify(roles));
+    }
+
+    let roles = loadRoles();
+
+    const EMOJI_LIST = [
+        '🧹','🪣','🧽','🪟','📐','🗑️','🧴','🪥','🫧','💧',
+        '🧺','📦','🗂️','📋','🔧','🪠','🛒','🪑','🖼️','✏️',
+        '⭐','✨','🌟','💫','🎯','💪','🙋','🤝','👋','🏃',
+        '🌸','🌈','🎨','🖌️','🎭','🎪','🌻','🍀','🦋','🐣',
+    ];
+
+    // ── 파티클
+    const EMOJIS = ['⭐','✨','💫','🌟','🎈','🍀','🌈','💎'];
+    const pBox = document.getElementById('particles');
+    for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.textContent = EMOJIS[i % EMOJIS.length];
+        p.style.left = (Math.random() * 100) + '%';
+        p.style.animationDelay = (Math.random() * 14) + 's';
+        p.style.animationDuration = (12 + Math.random() * 10) + 's';
+        p.style.fontSize = (1 + Math.random() * 0.8) + 'em';
+        pBox.appendChild(p);
+    }
+
+    const savedName = localStorage.getItem('className');
+    if (savedName) document.getElementById('class-name-input').value = savedName;
+    document.getElementById('class-name-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') enterApp();
+    });
+
+    let className = '';
+    let editingIdx = -1;
+    let selectedColorIdx = 0;
+    let shuffledRoles = [], flippedCount = 0;
+    let celebInterval = null, rainbowEl = null;
+
+    function enterApp() {
+        const input = document.getElementById('class-name-input').value.trim();
+        className = input || '우리 반';
+        localStorage.setItem('className', className);
+        document.documentElement.requestFullscreen().catch(()=>{});
+        renderRoleList();
+        show('settings-screen');
+    }
+
+    // ── 역할 설정
+    function renderRoleList() {
+        const list = document.getElementById('role-list');
+        list.innerHTML = '';
+        document.getElementById('student-count').textContent = `총 ${roles.length}명`;
+        roles.forEach((role, idx) => {
+            const item = document.createElement('div');
+            item.className = 'role-item';
+            item.style.borderColor = role.color + '55';
+            item.innerHTML = `
+                <div class="role-color-dot" style="background:${role.color}"></div>
+                <div class="role-icon-display">${role.icon}</div>
+                <div class="role-info">
+                    <div class="role-info-name">${role.title}</div>
+                    <div class="role-info-desc">${role.desc.replace('\n',' ')}</div>
+                </div>
+                <div class="role-actions">
+                    <button class="btn-edit" onclick="openModal(${idx})">✏️ 수정</button>
+                    <button class="btn-delete" onclick="deleteRole(${idx})" ${roles.length <= 2 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>🗑️ 삭제</button>
+                </div>`;
+            list.appendChild(item);
+        });
+    }
+
+    function confirmReset() {
+        const btn = document.getElementById('reset-btn');
+        if (btn.dataset.confirming === 'true') {
+            roles = [...DEFAULT_ROLES];
+            saveRoles();
+            renderRoleList();
+            btn.textContent = '🔄 기본값으로';
+            btn.style.background = btn.style.color = btn.style.borderColor = '';
+            delete btn.dataset.confirming;
+        } else {
+            btn.dataset.confirming = 'true';
+            btn.textContent = '정말 초기화할까요?';
+            btn.style.background = 'rgba(231,76,60,0.1)';
+            btn.style.color = '#e74c3c';
+            btn.style.borderColor = '#e74c3c';
+            setTimeout(() => {
+                btn.textContent = '🔄 기본값으로';
+                btn.style.background = btn.style.color = btn.style.borderColor = '';
+                delete btn.dataset.confirming;
+            }, 3000);
+        }
+    }
+
+    function deleteRole(idx) {
+        if (roles.length <= 2) return;
+        roles.splice(idx, 1);
+        saveRoles();
+        renderRoleList();
+    }
+
+    // ── 모달
+    function renderEmojiPicker() {
+        const picker = document.getElementById('emoji-picker-1');
+        picker.innerHTML = '';
+        EMOJI_LIST.forEach(emoji => {
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'emoji-btn'; btn.textContent = emoji;
+            btn.onclick = () => { document.getElementById('f-icon').value = emoji; syncEmojiSelect(); };
+            picker.appendChild(btn);
+        });
+        syncEmojiSelect();
+    }
+
+    function syncEmojiSelect() {
+        const val = document.getElementById('f-icon').value.trim();
+        document.querySelectorAll('#emoji-picker-1 .emoji-btn').forEach(btn => {
+            btn.classList.toggle('selected', btn.textContent === val);
+        });
+    }
+
+    function openModal(idx) {
+        editingIdx = idx;
+        document.getElementById('modal-title').textContent = idx === -1 ? '역할 추가' : '역할 수정';
+        const swatches = document.getElementById('color-swatches');
+        swatches.innerHTML = '';
+        COLORS.forEach((c, i) => {
+            const s = document.createElement('div');
+            s.className = 'color-swatch'; s.style.background = c.color;
+            s.onclick = () => { selectedColorIdx = i; renderSwatches(); };
+            swatches.appendChild(s);
+        });
+        if (idx === -1) {
+            document.getElementById('f-icon').value = '🧹';
+            document.getElementById('f-title').value = '';
+            document.getElementById('f-desc').value = '';
+            selectedColorIdx = 0;
+        } else {
+            const role = roles[idx];
+            document.getElementById('f-icon').value = role.icon;
+            document.getElementById('f-title').value = role.title;
+            document.getElementById('f-desc').value = role.desc;
+            selectedColorIdx = COLORS.findIndex(c => c.color === role.color);
+            if (selectedColorIdx < 0) selectedColorIdx = 0;
+        }
+        renderSwatches();
+        renderEmojiPicker();
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function renderSwatches() {
+        document.querySelectorAll('.color-swatch').forEach((s, i) => {
+            s.classList.toggle('selected', i === selectedColorIdx);
+        });
+    }
+
+    function saveRole() {
+        const icon = document.getElementById('f-icon').value.trim() || '🧹';
+        const title = document.getElementById('f-title').value.trim();
+        const desc = document.getElementById('f-desc').value.trim();
+        if (!title) {
+            const err = document.getElementById('modal-error');
+            err.style.display = 'block';
+            setTimeout(() => { err.style.display = 'none'; }, 2500);
+            return;
+        }
+        const c = COLORS[selectedColorIdx];
+        const newRole = { color: c.color, colorBg: c.bg, icon, title, desc: desc || title };
+        if (editingIdx === -1) roles.push(newRole);
+        else roles[editingIdx] = newRole;
+        saveRoles(); closeModal(); renderRoleList();
+    }
+
+    function closeModal() { document.getElementById('edit-modal').style.display = 'none'; }
+    function modalOutsideClick(e) { if (e.target === document.getElementById('edit-modal')) closeModal(); }
+
+    // ── 뽑기 화면
+    function goToDraw() {
+        const title = `${className} 청소`;
+        document.getElementById('draw-title').textContent = title;
+        document.getElementById('cleaning-title-text').textContent = `${className} 청소 합시다!`;
+        document.getElementById('done-sub').textContent = `여러분 덕분에 ${className} 교실이 깨끗해졌어요! 수고했어요 ✨`;
+        initDraw();
+        show('draw-screen');
+    }
+
+    function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+    function initDraw() {
+        shuffledRoles = shuffle([...roles]);
+        flippedCount = 0;
+        const grid = document.getElementById('draw-grid');
+        grid.innerHTML = '';
+        document.getElementById('start-wrap').classList.remove('visible');
+
+        const n = roles.length;
+        grid.style.gridTemplateColumns = `repeat(${Math.min(n, 6)}, 1fr)`;
+
+        shuffledRoles.forEach((role, idx) => {
+            const card = document.createElement('div');
+            card.className = 'flip-card';
+            card.innerHTML = `
+                <div class="flip-card-inner">
+                    <div class="flip-front">
+                        <div class="num-badge" style="background:rgba(0,0,0,0.12);color:#555;">${idx + 1}</div>
+                        <div class="mystery-emoji">⭐</div>
+                        <div class="tap-text">탭!</div>
+                    </div>
+                    <div class="flip-back" style="border-color:${role.color};">
+                        <div class="num-badge" style="background:${role.color}">${idx + 1}</div>
+                        <div class="role-icon">${role.icon}</div>
+                        <div class="role-title" style="color:${role.color}">${role.title}</div>
+                    </div>
+                </div>`;
+            card.addEventListener('click', () => {
+                if (card.classList.contains('flipped')) return;
+                card.classList.add('flipped');
+                if (++flippedCount === roles.length) document.getElementById('start-wrap').classList.add('visible');
+            });
+            grid.appendChild(card);
+        });
+    }
+
+    // ── 청소 중 화면
+    let tappedCards = new Set();
+
+    function startCleaning() {
+        tappedCards.clear();
+        const grid = document.getElementById('role-cards-grid');
+        grid.innerHTML = '';
+        grid.style.gridTemplateColumns = `repeat(${Math.min(shuffledRoles.length, 6)}, 1fr)`;
+        renderCleaningCards();
+        show('cleaning-screen');
+    }
+
+    function renderCleaningCards() {
+        const grid = document.getElementById('role-cards-grid');
+        grid.innerHTML = '';
+        shuffledRoles.forEach((role, idx) => {
+            const done = tappedCards.has(idx);
+            const card = document.createElement('div');
+            card.className = `role-card-display${done ? ' card-done' : ''}`;
+            card.style.borderColor = done ? 'rgba(39,174,96,0.35)' : role.color;
+            card.innerHTML = `
+                <div class="role-card-num" style="background:${done ? '#27ae60' : role.color}">${idx + 1}</div>
+                <div class="role-card-check">✅</div>
+                <div class="role-card-icon">${done ? '🎉' : role.icon}</div>
+                <div class="role-card-name" style="color:${done ? '#27ae60' : role.color}">${done ? '수고했어요!' : role.title}</div>
+                <div class="role-card-desc">${done ? '깨끗하게 청소했어요!' : role.desc.replace('\n','<br>')}</div>
+                ${done ? '' : '<div class="role-card-hint">탭하면 완료!</div>'}`;
+            if (!done) {
+                card.addEventListener('click', () => {
+                    tappedCards.add(idx);
+                    renderCleaningCards();
+                    if (tappedCards.size >= shuffledRoles.length) {
+                        setTimeout(() => { launchConfetti(); setTimeout(() => showDone(), 600); }, 400);
+                    }
+                });
+            }
+            grid.appendChild(card);
+        });
+    }
+
+    function finishCleaning() {
+        launchConfetti();
+        setTimeout(() => showDone(), 600);
+    }
+
+    function showDone() {
+        rainbowEl = document.createElement('div');
+        rainbowEl.className = 'rainbow-bg';
+        document.body.appendChild(rainbowEl);
+        show('done-screen');
+        launchConfetti();
+        celebInterval = setInterval(launchConfetti, 1800);
+        setTimeout(() => { clearInterval(celebInterval); celebInterval = null; }, 9000);
+    }
+
+    function backToSettings() {
+        if (celebInterval) { clearInterval(celebInterval); celebInterval = null; }
+        if (rainbowEl) { rainbowEl.remove(); rainbowEl = null; }
+        show('settings-screen');
+        renderRoleList();
+    }
+
+    // ── 전체화면
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+    }
+    document.addEventListener('fullscreenchange', () => {
+        const btn = document.getElementById('fs-btn');
+        const btn2 = document.getElementById('fs-btn2');
+        const icon = document.fullscreenElement ? '✕' : '⛶';
+        if (btn) btn.textContent = icon;
+        if (btn2) btn2.textContent = icon;
+    });
+
+    function show(id) {
+        ['cover-screen','settings-screen','draw-screen','cleaning-screen','done-screen'].forEach(s => {
+            document.getElementById(s).style.display = s === id ? 'flex' : 'none';
+        });
+    }
+
+    function launchConfetti() {
+        const e = ['🎉','✨','🌟','🎊','⭐','🥳','🎈','💫','🌈','💎'];
+        for (let i = 0; i < 28; i++) {
+            setTimeout(() => {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.textContent = e[Math.floor(Math.random()*e.length)];
+                c.style.left = Math.random()*100+'vw';
+                c.style.animationDuration = (1.5+Math.random()*2)+'s';
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 3500);
+            }, i * 70);
+        }
+    }
+</script>
+</body>
+</html>
