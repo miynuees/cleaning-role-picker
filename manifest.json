@@ -1,7 +1,7 @@
 {
-  "name": "청소 퀘스트",
-  "short_name": "청소 퀘스트",
-  "description": "학급 청소 역할 뽑기 도구",
+  "name": "두근두근 청소 시간",
+  "short_name": "청소 시간",
+  "description": "청소 시간 역할을 카드로 뽑는 학급 운영 도구",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
